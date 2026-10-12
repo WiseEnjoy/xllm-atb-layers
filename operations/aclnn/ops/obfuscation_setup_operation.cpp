@@ -15,10 +15,21 @@
  */
 
 #include "acl/acl.h"
-#include "aclnnop/aclnn_obfuscation_setup.h"
+#include "operations/aclnn/utils/op_api_resolver.h"
 #include "atb_speed/log.h"
 #include "operations/aclnn/utils/utils.h"
 #include "obfuscation_setup_operation.h"
+
+namespace {
+using AclnnObfuscationSetupGetWorkspaceSizeFunc = aclnnStatus (*)(
+    int32_t fdToClose, int32_t dataType, int32_t hiddenSize, int32_t tpRank,
+    int32_t modelObfSeedId, int32_t dataObfSeedId, int32_t cmd, int32_t threadNum,
+    aclTensor *fd, uint64_t *workspaceSize, aclOpExecutor **executor);
+using AclnnObfuscationSetupFunc = aclnnStatus (*)(
+    void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream);
+} // namespace
+
+
 
 namespace atb_speed {
 namespace common {
@@ -57,6 +68,11 @@ uint32_t ObfuscationSetupOperation::GetOutputNum() const { return NUM1; }
 int ObfuscationSetupOperation::SetAclNNWorkspaceExecutor()
 {
     ATB_SPEED_LOG_DEBUG("aclnnObfuscationSetupGetWorkspaceSize start");
+static const auto aclnnObfuscationSetupGetWorkspaceSize =
+    GetOpApiFunc<AclnnObfuscationSetupGetWorkspaceSizeFunc>("aclnnObfuscationSetupGetWorkspaceSize");
+if (aclnnObfuscationSetupGetWorkspaceSize == nullptr) {
+    return kAclnnOpApiNotFound;
+}
     AclNNVariantPack &aclnnVariantPack = this->aclnnOpCache_->aclnnVariantPack;
     int ret = aclnnObfuscationSetupGetWorkspaceSize(
         param_.fdtoClose,
@@ -80,6 +96,11 @@ int ObfuscationSetupOperation::SetAclNNWorkspaceExecutor()
 int ObfuscationSetupOperation::ExecuteAclNNOp(uint8_t *workspace, aclrtStream &stream)
 {
     ATB_SPEED_LOG_DEBUG("aclnnObfuscationSetup start");
+static const auto aclnnObfuscationSetup =
+    GetOpApiFunc<AclnnObfuscationSetupFunc>("aclnnObfuscationSetup");
+if (aclnnObfuscationSetup == nullptr) {
+    return kAclnnOpApiNotFound;
+}
     int ret = aclnnObfuscationSetup(
         workspace,
         this->aclnnOpCache_->workspaceSize,
