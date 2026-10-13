@@ -93,7 +93,6 @@ std::vector<OpApiLib> OpenOpApiLibs()
     std::vector<std::string> libPaths;
     AppendCustomOppLibs(libPaths);
     AppendDefaultVendorLibs(libPaths);
-    libPaths.push_back("libcust_opapi.so");
     libPaths.push_back("libopapi.so");
 
     std::vector<OpApiLib> libs;

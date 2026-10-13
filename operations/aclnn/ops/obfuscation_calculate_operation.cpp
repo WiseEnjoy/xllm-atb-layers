@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 #include "acl/acl.h"
-#include "aclnnop/aclnn_obfuscation_calculate.h"
+#include "operations/aclnn/utils/op_api_resolver.h"
 #include "atb_speed/log.h"
 #include "operations/aclnn/utils/utils.h"
 #include "obfuscation_calculate_operation.h"
+
+namespace {
+using AclnnObfuscationCalculateGetWorkspaceSizeFunc = aclnnStatus (*)(
+    int32_t fd, const aclTensor *x, int32_t param, int32_t cmd,
+    aclTensor *y, uint64_t *workspaceSize, aclOpExecutor **executor);
+using AclnnObfuscationCalculateFunc = aclnnStatus (*)(
+    void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream);
+} // namespace
+
+
 
 namespace atb_speed {
 namespace common {
@@ -73,6 +83,11 @@ int ObfuscationCalculateOperation::CreateAclNNInTensorVariantPack(const atb::Var
 int ObfuscationCalculateOperation::SetAclNNWorkspaceExecutor()
 {
     ATB_SPEED_LOG_DEBUG("aclnnObfuscationCalculateGetWorkspaceSize start");
+static const auto aclnnObfuscationCalculateGetWorkspaceSize =
+    GetOpApiFunc<AclnnObfuscationCalculateGetWorkspaceSizeFunc>("aclnnObfuscationCalculateGetWorkspaceSize");
+if (aclnnObfuscationCalculateGetWorkspaceSize == nullptr) {
+    return kAclnnOpApiNotFound;
+}
     AclNNVariantPack &aclnnVariantPack = this->aclnnOpCache_->aclnnVariantPack;
     int ret = aclnnObfuscationCalculateGetWorkspaceSize(
         param_.fd,
@@ -92,6 +107,11 @@ int ObfuscationCalculateOperation::SetAclNNWorkspaceExecutor()
 int ObfuscationCalculateOperation::ExecuteAclNNOp(uint8_t *workspace, aclrtStream &stream)
 {
     ATB_SPEED_LOG_DEBUG("aclnnObfuscationCalculate start");
+static const auto aclnnObfuscationCalculate =
+    GetOpApiFunc<AclnnObfuscationCalculateFunc>("aclnnObfuscationCalculate");
+if (aclnnObfuscationCalculate == nullptr) {
+    return kAclnnOpApiNotFound;
+}
     int ret = aclnnObfuscationCalculate(
         workspace,
         this->aclnnOpCache_->workspaceSize,
