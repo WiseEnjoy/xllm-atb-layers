@@ -117,15 +117,8 @@ atb::Status SparseFlashAttentionOperation::CreateAclNNOutTensorVariantPack(const
 int SparseFlashAttentionOperation::SetAclNNWorkspaceExecutor()
 {
     ATB_SPEED_LOG_DEBUG(opName_ << " SetAclNNWorkspaceExecutor start");
-    // Resolve the op-api entry from the vendor op-api libraries instead of
-    // calling the CANN built-in entry: the op definition keeps evolving in the
-    // ops-transformer vendor package (e.g. the sinks input added after CANN
-    // 9.1.0), so the built-in wrapper marshals parameters per an older
-    // definition than the vendor opmaster/kernel selected by the aclInit
-    // registry, producing silently wrong results.
-    // CANN 9.0's SparseFlashAttention adds 4 inputs (fixed defaults) and 2
-    // outputs. See:
-    // https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/API/aolapi/context/ops-transformer/aclnnSparseFlashAttention.md
+    // The call wrapper must pair with the implementation kernel: resolve the
+    // op-api entry from the vendor op-api library.
     static const auto aclnnSparseFlashAttentionGetWorkspaceSize =
         GetOpApiFunc<AclnnSparseFlashAttentionGetWorkspaceSizeFunc>("aclnnSparseFlashAttentionGetWorkspaceSize");
     if (aclnnSparseFlashAttentionGetWorkspaceSize == nullptr) {
